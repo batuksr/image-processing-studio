@@ -141,6 +141,7 @@ OPERATIONS = {
     # Temel (Basic)
     "grayscale":          lambda img, p: _ensure_rgb(basic.to_grayscale(img)),
     "binary":             lambda img, p: _ensure_rgb(basic.to_binary(img, int(p.get("threshold", 128)))),
+    "adaptive_threshold": lambda img, p: _ensure_rgb(basic.adaptive_threshold(img, int(p.get("block_size", 11)), float(p.get("C", 2.0)))),
     "rotate":             lambda img, p: _ensure_rgb(basic.rotate_image(img, float(p.get("angle", 90)), bool(p.get("expand", True)))),
     "crop":               lambda img, p: _ensure_rgb(basic.crop_image(img,
                                                      int(p.get("x", 0)), int(p.get("y", 0)),

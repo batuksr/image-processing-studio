@@ -28,6 +28,17 @@ const OPERATIONS = [
           { id:'preview', label:'Canlı Önizleme', type:'checkbox', default:false, action:'auto_apply' }
         ] 
       },
+      { key: 'adaptive_threshold', label: 'Adaptif Eşikleme', icon: '🌗', desc: 'Yerel ortalamaya göre görüntüye adaptif eşikleme uygular.',
+        params: [
+          { id:'block_size', label:'Blok Boyutu', type:'range', min:3, max:51, step:2, default:11 },
+          { id:'C', label:'Sabit (C)', type:'range', min:-20, max:20, step:1, default:2 }
+        ] 
+      },
+      { key: 'brightness', label: 'Parlaklık Artırma', icon: '☀️', desc: 'Görüntünün parlaklığını artırır veya azaltır.',
+        params: [
+          { id:'value', label:'Değer', type:'range', min:-255, max:255, step:1, default:30 }
+        ] 
+      },
       { key: 'rotate', label: 'Görüntü Döndürme', icon: '🔄', desc: 'Bilineer interpolasyon kullanarak görüntüyü döndürür.',
         params: [
           { id:'angle', label:'Açı (°)', type:'range', min:-180, max:180, step:1, default:90 },
@@ -62,8 +73,7 @@ const OPERATIONS = [
     ops: [
       { key: 'add_images', label: 'İki Resim Toplama', icon: '➕', desc: 'İki görüntüyü alfa ağırlığı ile piksel piksel toplar.',
         params: [{ id:'alpha', label:'Alfa (ağırlık)', type:'range', min:0, max:1, step:0.01, default:0.5 }] },
-      { key: 'multiply_images', label: 'İki Resim Çarpma', icon: '✖️', desc: 'İki görüntünün piksel yoğunluklarını çarpar.', params: [] },
-      { key: 'subtract_images', label: 'Mutlak Fark', icon: '➖', desc: 'Piksel yoğunluklarını çıkarır ve mutlak değer alır.', params: [] },
+      { key: 'multiply_images', label: 'İki Resim Çarpma', icon: '✖️', desc: 'İki görüntünün piksel yoğunluklarını çarpar.', params: [] }
     ]
   },
   {
@@ -327,7 +337,7 @@ function selectOperation(op, group) {
   document.getElementById(`op-${op.key}`).classList.add('active');
   state.activeOp = op.key;
   elSecondSection.classList.toggle('visible', group.requiresSecond || false);
-  renderParams(op);
+  renderParams(op, group);
 }
 
 let debounceTimer;
@@ -336,12 +346,17 @@ function debouncedApply() {
   debounceTimer = setTimeout(() => { elApplyBtn.click(); }, 300);
 }
 
-function renderParams(op) {
+function renderParams(op, group) {
   elParamsContent.innerHTML = '';
   
   const header = document.createElement('div');
-  header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;';
-  header.innerHTML = `<h3 style="font-size:13px; color:var(--accent-purple); margin:0;">${op.label}</h3><span title="${op.desc}" style="cursor:help; color:var(--text-muted); font-size:14px;">❓</span>`;
+  header.style.cssText = 'margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--border);';
+  header.innerHTML = `
+    <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+      ${op.label} <span title="${op.desc}" style="cursor:help; color:var(--text-tertiary); font-size:14px;">❓</span>
+    </div>
+    <div style="font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">${group.group}</div>
+  `;
   elParamsContent.appendChild(header);
 
   if (!op.params || op.params.length === 0) {

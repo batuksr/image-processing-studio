@@ -112,6 +112,70 @@ def to_binary(img: np.ndarray, threshold: int = 128) -> np.ndarray:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# 2.5 adaptive_threshold
+# ═══════════════════════════════════════════════════════════════════════════
+
+def adaptive_threshold(img: np.ndarray, block_size: int = 11, C: float = 2.0) -> np.ndarray:
+    """
+    Yerel bir bölgedeki ortalamaya dayalı adaptif eşikleme (Adaptive Thresholding).
+    
+    Aydınlatmanın dengesiz olduğu görüntülerde (örneğin gölgeli metin okuma) 
+    küresel (global) eşiklemeye göre çok daha iyi sonuç verir.
+    Hızlı hesaplama için İntegral Görüntü (Integral Image) algoritmasını kullanır.
+
+    Parametreler
+    ------------
+    img : np.ndarray
+        Giriş görüntüsü (H, W) veya (H, W, 3).
+    block_size : int
+        Pikselin eşik değerini hesaplamak için kullanılacak komşuluk boyutu.
+        Tek sayı olmalıdır (örneğin 3, 5, 11). Varsayılan 11.
+    C : float
+        Hesaplanan yerel ortalamadan çıkarılacak sabit değer. 
+        Gürültüyü azaltmaya yardımcı olur. Varsayılan 2.0.
+
+    Döndürür
+    --------
+    np.ndarray
+        İkili görüntü (0 veya 255), şekil (H, W), dtype uint8.
+    """
+    # 1. Gri tonlamaya çevir
+    gray = to_grayscale(img) if img.ndim == 3 else img.copy()
+    h, w = gray.shape
+    
+    # block_size tek sayı olmalı
+    block_size = max(3, int(block_size) | 1)
+    r = block_size // 2
+    
+    # 2. İntegral görüntü hesapla (toplamlar için float64 kullanılarak taşma önlenir)
+    # integral[y, x], gray[0:y, 0:x] toplamını içerir.
+    integral = np.zeros((h + 1, w + 1), dtype=np.float64)
+    integral[1:, 1:] = gray.cumsum(axis=0).cumsum(axis=1)
+    
+    # 3. Vektörize edilmiş yerel toplam hesaplaması
+    y, x = np.mgrid[0:h, 0:w]
+    
+    y0 = np.maximum(y - r, 0)
+    y1 = np.minimum(y + r + 1, h)
+    x0 = np.maximum(x - r, 0)
+    x1 = np.minimum(x + r + 1, w)
+    
+    count = (y1 - y0) * (x1 - x0)
+    
+    # İntegral görüntü formülü ile 4 köşeden alan toplamını O(1)'de bulma
+    local_sum = (integral[y1, x1] - integral[y0, x1] - 
+                 integral[y1, x0] + integral[y0, x0])
+                 
+    # 4. Yerel ortalama ve eşik
+    local_mean = local_sum / count
+    local_threshold = local_mean - C
+    
+    # 5. Eşikleme
+    binary = np.where(gray >= local_threshold, np.uint8(255), np.uint8(0))
+    return binary
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # 3.  rotate_image
 # ═══════════════════════════════════════════════════════════════════════════
 
